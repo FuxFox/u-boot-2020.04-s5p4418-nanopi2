@@ -256,6 +256,11 @@ static int i2c_gpio_read_data(struct i2c_gpio_bus *bus, uchar chip,
 
 	debug("%s: chip %x buffer: %p len %d\n", __func__, chip, buffer, len);
 
+	if (i2c_send_slave_addr(bus, delay, (chip << 1) | 0x1)) {
+		debug("i2c_read, no chip responded %02X\n", chip);
+		return -EIO;
+	}
+
 	while (len-- > 0)
 		*buffer++ = i2c_gpio_read_byte(bus, delay, len == 0);
 
@@ -270,14 +275,14 @@ static int i2c_gpio_xfer(struct udevice *dev, struct i2c_msg *msg, int nmsgs)
 	int ret;
 
 	for (; nmsgs > 0; nmsgs--, msg++) {
-		bool next_is_read = nmsgs > 1 && (msg[1].flags & I2C_M_RD);
+		// bool next_is_read = nmsgs > 1 && (msg[1].flags & I2C_M_RD);
 
 		if (msg->flags & I2C_M_RD) {
 			ret = i2c_gpio_read_data(bus, msg->addr, msg->buf,
 						 msg->len);
 		} else {
 			ret = i2c_gpio_write_data(bus, msg->addr, msg->buf,
-						  msg->len, next_is_read);
+						  msg->len, false);
 		}
 
 		if (ret)
@@ -307,7 +312,7 @@ static int i2c_gpio_set_bus_speed(struct udevice *dev, unsigned int speed_hz)
 {
 	struct i2c_gpio_bus *bus = dev_get_priv(dev);
 
-	bus->udelay = 1000000 / (speed_hz << 2);
+	// bus->udelay = 1000000 / (speed_hz << 2);		//Jaewon Kim :dm: i2c-gpio: fix i2c-gpio delay error
 
 	i2c_gpio_send_reset(bus, bus->udelay);
 

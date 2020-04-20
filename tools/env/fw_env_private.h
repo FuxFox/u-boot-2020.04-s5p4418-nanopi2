@@ -21,7 +21,7 @@
  * See included "fw_env.config" sample file
  * for notes on configuration.
  */
-#define CONFIG_FILE     "/etc/fw_env.config"
+#define CONFIG_FILE     "/home/fox/mine/u-boot/tools/env/fw_env.config"
 
 #ifndef CONFIG_FILE
 #define HAVE_REDUND /* For systems with 2 env sectors */

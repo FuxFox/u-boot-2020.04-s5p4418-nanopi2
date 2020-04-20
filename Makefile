@@ -6,6 +6,9 @@ SUBLEVEL =
 EXTRAVERSION =
 NAME =
 
+CROSS_COMPILE=arm-none-linux-gnueabihf-
+export CROSS_COMPILE
+
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
 # More info can be located in ./README
@@ -888,6 +891,8 @@ endif
 # Always append ALL so that arch config.mk's can add custom ones
 ALL-y += u-boot.srec u-boot.bin u-boot.sym System.map binary_size_check
 
+ALL-$(CONFIG_ARCH_S5P4418) += bootloader.img
+
 ALL-$(CONFIG_ONENAND_U_BOOT) += u-boot-onenand.bin
 ifeq ($(CONFIG_SPL_FSL_PBL),y)
 ALL-$(CONFIG_RAMBOOT_PBL) += u-boot-with-spl-pbl.bin
@@ -1308,6 +1313,18 @@ OBJCOPYFLAGS_u-boot.ldr.srec := -I binary -O srec
 
 u-boot.ldr.hex u-boot.ldr.srec: u-boot.ldr FORCE
 	$(call if_changed,objcopy)
+
+ifdef CONFIG_ARCH_S5P4418
+BINGEN = tools/nexell/SECURE_BINGEN
+
+NSIH ?= tools/nexell/nsih/nanopi2.txt
+BINGEN_FLAGS := -l 0x74c00000 -e 0x74c00000 -n $(NSIH)
+
+bootloader.img: u-boot.bin $(NSIH) tools
+	@echo "Creating \"$@\" (<-- $(NSIH))"
+	$(Q)$(BINGEN) -c S5P4418 -t 3rdboot $(BINGEN_FLAGS) -i $< -o $@
+
+endif
 
 #
 # U-Boot entry point, needed for booting of full-blown U-Boot

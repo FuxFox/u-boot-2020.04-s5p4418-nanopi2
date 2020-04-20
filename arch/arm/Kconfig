@@ -713,6 +713,9 @@ config ARCH_EXYNOS
 	imply CMD_DM
 	imply FAT_WRITE
 
+config ARCH_NEXELL
+	bool "Nexell SoC"
+
 config ARCH_S5PC1XX
 	bool "Samsung S5PC1XX"
 	select CPU_V7A
@@ -1812,6 +1815,8 @@ source "arch/arm/cpu/armv7/Kconfig"
 source "arch/arm/cpu/armv8/Kconfig"
 
 source "arch/arm/mach-imx/Kconfig"
+
+source "arch/arm/mach-nexell/Kconfig"
 
 source "board/bosch/shc/Kconfig"
 source "board/bosch/guardian/Kconfig"

@@ -168,6 +168,9 @@ enum fdt_compat_id {
 	COMPAT_ALTERA_SOCFPGA_FPGA0,		/* SOCFPGA FPGA manager */
 	COMPAT_ALTERA_SOCFPGA_NOC,		/* SOCFPGA Arria 10 NOC */
 	COMPAT_ALTERA_SOCFPGA_CLK_INIT,		/* SOCFPGA Arria 10 clk init */
+	COMPAT_NEXELL_DWMMC,		/* Nexell DWMMC controllet */
+	COMPAT_NEXELL_DISPLAY,		/* Nexell Display controllet */
+	COMPAT_NEXELL_HWVER,		/* Nexell Display controllet */
 
 	COMPAT_COUNT,
 };

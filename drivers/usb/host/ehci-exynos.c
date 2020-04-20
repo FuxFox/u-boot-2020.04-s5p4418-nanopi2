@@ -12,10 +12,17 @@
 #include <linux/libfdt.h>
 #include <malloc.h>
 #include <usb.h>
-#include <asm/arch/cpu.h>
 #include <asm/arch/ehci.h>
+#if !defined(CONFIG_ARCH_NEXELL)
+#include <asm/arch/cpu.h>
 #include <asm/arch/system.h>
 #include <asm/arch/power.h>
+#else
+#include <asm/arch/reset.h>
+#include <asm/arch/nexell.h>
+#include <asm/arch/tieoff.h>
+#include <asm/io.h>
+#endif
 #include <asm/gpio.h>
 #include <linux/errno.h>
 #include <linux/compat.h>
@@ -81,6 +88,61 @@ static int ehci_usb_ofdata_to_platdata(struct udevice *dev)
 	return 0;
 }
 
+#if defined(CONFIG_ARCH_NEXELL)
+static void nx_setup_usb_phy(struct nx_usb_phy *usb)
+{
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_fladj_val_host_i, 0x20);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_fladj_val_5_i, 0x7);
+
+	nx_rstcon_setrst(RESET_ID_USB20HOST, RSTCON_ASSERT);
+	nx_rstcon_setrst(RESET_ID_USB20HOST, RSTCON_NEGATE);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_FREE_CLOCK_ENB, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_480M_FROM_OTG_PHY, 0);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_480M_FROM_OTG_PHY, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_hsic_en, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_hsic_en, 2);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_ena_incr16_i, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_ena_incr8_i, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_ena_incr4_i, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_ena_incrx_align_i, 1);
+
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_word_if_enb_i, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_ss_word_if_i, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_WORDINTERFACE_ENB, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_WORDINTERFACE, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_WORDINTERFACE_ENB, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_WORDINTERFACE, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR_ENB, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR_ENB, 1);
+	udelay(10);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_FREE_CLOCK_ENB, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_480M_FROM_OTG_PHY, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_POR_ENB, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_POR, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_POR_ENB, 1);
+
+	udelay(100);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostPhyResetSync, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostUtmiResetSync, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostHsicResetSync, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nResetSync, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nResetSync_ohci, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nAuxWellResetSync, 1);
+}
+#else
 static void exynos5_setup_usb_phy(struct exynos_usb_phy *usb)
 {
 	u32 hsic_ctrl;
@@ -153,9 +215,13 @@ static void exynos4412_setup_usb_phy(struct exynos4412_usb_phy *usb)
 	udelay(10);
 	clrbits_le32(&usb->usbphyrstcon, (RSTCON_HOSTPHY_SWRST | RSTCON_SWRST));
 }
+#endif
 
 static void setup_usb_phy(struct exynos_usb_phy *usb)
 {
+#if defined(CONFIG_ARCH_NEXELL)
+	nx_setup_usb_phy((struct nx_usb_phy *)usb);
+#else
 	set_usbhost_mode(USB20_PHY_CFG_HOST_LINK_EN);
 
 	set_usbhost_phy_ctrl(POWER_USB_HOST_PHY_CTRL_EN);
@@ -166,8 +232,40 @@ static void setup_usb_phy(struct exynos_usb_phy *usb)
 		if (proid_is_exynos4412())
 			exynos4412_setup_usb_phy((struct exynos4412_usb_phy *)
 						 usb);
+#endif
 }
 
+#if defined(CONFIG_ARCH_NEXELL)
+static void nx_reset_usb_phy(struct nx_usb_phy *usb)
+{
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nResetSync, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nResetSync_ohci, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nAuxWellResetSync, 0);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostPhyResetSync, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostUtmiResetSync, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_nHostHsicResetSync, 1);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR_ENB, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR_ENB, 1);
+
+	udelay(1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR_ENB, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR, 1);
+
+	udelay(1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_POR, 0);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_FREE_CLOCK_ENB, 0);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_480M_FROM_OTG_PHY, 0);
+
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_POR_ENB, 1);
+	nx_tieoff_set(NX_TIEOFF_USB20HOST0_i_HSIC_POR, 1);
+
+	udelay(10);
+}
+#else
 static void exynos5_reset_usb_phy(struct exynos_usb_phy *usb)
 {
 	u32 hsic_ctrl;
@@ -196,10 +294,14 @@ static void exynos4412_reset_usb_phy(struct exynos4412_usb_phy *usb)
 		PHYPWR_NORMAL_MASK_HSIC1 | PHYPWR_NORMAL_MASK_PHY1 |
 		PHYPWR_NORMAL_MASK_PHY0));
 }
+#endif
 
 /* Reset the EHCI host controller. */
 static void reset_usb_phy(struct exynos_usb_phy *usb)
 {
+#if defined(CONFIG_ARCH_NEXELL)
+	nx_reset_usb_phy((struct nx_usb_phy *)usb);
+#else
 	if (cpu_is_exynos5())
 		exynos5_reset_usb_phy(usb);
 	else if (cpu_is_exynos4())
@@ -208,6 +310,7 @@ static void reset_usb_phy(struct exynos_usb_phy *usb)
 						 usb);
 
 	set_usbhost_phy_ctrl(POWER_USB_HOST_PHY_CTRL_DISABLE);
+#endif
 }
 
 static int ehci_usb_probe(struct udevice *dev)
@@ -245,6 +348,7 @@ static int ehci_usb_remove(struct udevice *dev)
 
 static const struct udevice_id ehci_usb_ids[] = {
 	{ .compatible = "samsung,exynos-ehci" },
+	{ .compatible = "nexell,nexell-ehci" },
 	{ }
 };
 

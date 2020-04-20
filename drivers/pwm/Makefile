@@ -16,3 +16,5 @@ obj-$(CONFIG_PWM_ROCKCHIP)	+= rk_pwm.o
 obj-$(CONFIG_PWM_SANDBOX)	+= sandbox_pwm.o
 obj-$(CONFIG_PWM_TEGRA)		+= tegra_pwm.o
 obj-$(CONFIG_PWM_SUNXI)		+= sunxi_pwm.o
+obj-$(CONFIG_PWM_NX) 		+= pwm-nexell.o
+obj-$(CONFIG_PWM_NEXELL) 	+= nexell-pwm.o

@@ -501,6 +501,13 @@ static int _fs_read(const char *filename, ulong addr, loff_t offset, loff_t len,
 
 #ifdef CONFIG_LMB
 	if (do_lmb_check) {
+		ret = info->exists(filename);
+		if(!ret)
+		{
+			printf("** File not found %s **\n", filename);
+			return -ENOENT;
+		}
+
 		ret = fs_read_lmb_check(filename, addr, offset, len, info);
 		if (ret)
 			return ret;
